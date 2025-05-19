@@ -1,0 +1,69 @@
+Crea un'applicazione web progressiva (PWA) completa chiamata "NutriWell PWA" interamente in lingua italiana. L'obiettivo dell'app è essere un assistente personale per il benessere, la nutrizione e il fitness.
+
+## Requisiti Tecnici Chiave:
+- **Framework:** Next.js 15+ con App Router.
+- **Linguaggio:** TypeScript.
+- **Styling:** Tailwind CSS e componenti ShadCN. Il tema cromatico deve essere configurato in `src/app/globals.css` utilizzando variabili HSL.
+- **AI Backend:** Genkit per tutte le funzionalità di IA generativa, utilizzando il modello preconfigurato `googleai/gemini-2.0-flash` o specifici modelli come `googleai/gemini-2.0-flash-exp` per la generazione di immagini, se richiesta. Seguire le best practice di Genkit v1.x per la definizione di flussi, prompt (con Handlebars) e tool.
+- **Database:** Firebase (Firestore) per la persistenza dei dati utente (questo aspetto è da implementare).
+- **Qualità:** Codice pulito, ben organizzato, performante, responsivo, accessibile (ARIA), e compatibile cross-browser. Implementare la gestione degli errori con `error.js`.
+- **Componenti:** Funzionali, riutilizzabili, con props di default. Evitare discrepanze di idratazione gestendo i valori dinamici/specifici del browser con `useEffect`.
+- **Immagini:** Ottimizzate con `next/image` e placeholder da `https://placehold.co`. Aggiungere attributi `data-ai-hint` ai placeholder.
+
+## Moduli Principali e Funzionalità:
+
+1.  **App Shell e Navigazione:**
+    *   Homepage accogliente con una breve introduzione all'app e accesso chiaro a tutti i moduli.
+    *   Barra laterale di navigazione (collapsible su desktop, off-canvas su mobile) con icone (Lucide-React) e testo per ogni modulo.
+    *   Visualizzazione di un QR code (solo su desktop) con l'URL corrente dell'app per una facile condivisione.
+
+2.  **Selettore Modello AI (Gratuito):**
+    *   Pagina per visualizzare un elenco ricercabile di modelli AI forniti da OpenRouter.
+    *   **Mostrare e permettere la selezione SOLO dei modelli AI gratuiti.**
+    *   Per ogni modello, visualizzare nome, descrizione (in italiano) e un badge "Gratuito".
+    *   Il modello selezionato dall'utente deve essere salvato nel localStorage.
+    *   **Nota:** La generazione dei piani alimentari utilizzerà un modello Google AI preconfigurato, non quello selezionato qui. Questa selezione è per riferimento o usi futuri.
+
+3.  **Gestore Alimenti Stagionali:**
+    *   Pagina per visualizzare un elenco di alimenti di stagione (minimo 20 articoli per stagione, più una base di ingredienti sempre disponibili come olio, sale, etc.).
+    *   L'utente può selezionare la stagione (Primavera, Estate, Autunno, Inverno) o visualizzare quella corrente di default.
+    *   Ogni alimento deve essere presentato in una card con: nome (italiano), descrizione (italiano), e informazioni nutrizionali dettagliate (calorie, proteine, carboidrati, grassi). I dati degli alimenti e le loro traduzioni devono provenire da un servizio mock (es. `src/services/seasonal-food.ts`).
+
+4.  **Pianificatore Pasti AI:**
+    *   Pagina con un form per inserire: livello di attività (sedentario, leggermente attivo, attivo, molto attivo), età, obiettivi nutrizionali (testo libero) e la stagione corrente (determinata automaticamente e visualizzata, ma usata internamente in italiano per il prompt).
+    *   Utilizzare Genkit e un modello Google AI (es. Gemini) per generare un piano alimentare settimanale personalizzato.
+    *   Il piano deve:
+        *   Essere **estremamente variegato**, utilizzando **esclusivamente** gli alimenti di stagione disponibili per la stagione fornita (recuperati da `src/services/seasonal-food.ts`).
+        *   Coprire 7 giorni (Lunedì-Domenica) con 3 pasti principali (Colazione, Pranzo, Cena).
+        *   Per ogni pasto: descrizione (italiano) e **istruzioni di preparazione passo-passo semplici, PRATICHE e realistiche** (italiano).
+        *   Fornire una stima dei valori nutrizionali totali approssimativi per la settimana (in italiano).
+    *   Visualizzare il piano generato in modo chiaro, preferibilmente con un accordion per ogni giorno della settimana. Ogni pasto deve mostrare la descrizione e gli step di preparazione.
+
+5.  **Pianificatore Fitness a Casa:**
+    *   Pagina con routine di fitness domestiche.
+    *   Presentare piani distinti per obiettivi: Fitness Generale, Perdita Peso, Forza. L'utente può passare da un piano all'altro tramite Tabs.
+    *   Ogni piano deve avere un programma settimanale dettagliato (Lunedì-Domenica), specificando il focus del giorno (es. Corpo Intero, Riposo Attivo, Spinta Parte Superiore).
+    *   Per ogni giorno di allenamento, elencare gli esercizi con: nome, serie/ripetizioni/durata, tempi di riposo.
+    *   **Cruciale: Ogni esercizio deve includere una spiegazione dettagliata e pratica su "Come Fare" l'esercizio correttamente.**
+    *   Utilizzare un layout a card e accordion per presentare i piani in modo organizzato.
+
+## Stile e UI/UX:
+-   **Color Scheme:**
+    *   Primario: Verde calmante (#4CAF50) - `hsl(120, 39%, 50%)`
+    *   Secondario (Background): Beige chiaro (#F5F5DC) - `hsl(60, 56%, 94%)`
+    *   Accent: Arancione vibrante (#FF9800) - `hsl(36, 100%, 50%)`
+-   **Layout:** Basato su card chiare e digeribili.
+-   **Componenti UI:** Utilizzare componenti ShadCN, assicurando un aspetto professionale con angoli arrotondati, ombreggiature.
+-   **Icone:** Utilizzare `lucide-react` in modo consistente.
+-   **Feedback Utente:** Transizioni e animazioni sottili per migliorare l'esperienza. Toast per notifiche (es. selezione modello AI). Skeleton loaders durante il caricamento dei dati.
+-   **Lingua:** Tutta l'interfaccia utente, i testi e i contenuti generati dall'AI devono essere in **italiano**.
+
+## Persistenza Dati:
+-   Configurare Firebase (API keys in `.env`) e preparare le basi per salvare i dati utente (es. piani alimentari generati, preferenze) in Firestore. (L'effettiva implementazione del salvataggio/recupero può essere uno step successivo, ma la configurazione di base deve esserci).
+
+## PWA:
+-   Configurare l'app per essere una PWA installabile con `next-pwa`, includendo un `manifest.json` e icone appropriate.
+-   Assicurare la funzionalità offline di base dove possibile.
+
+Assicurati che il codice generato sia di alta qualità, segua le best practice di Next.js e React, e sia ben commentato dove necessario per spiegare logiche complesse (anche se il prompt generale richiede di evitare commenti di fix).
+Il file `.env` dovrà contenere `OPENROUTER_API_KEY` e le chiavi Firebase `NEXT_PUBLIC_FIREBASE_*`.
