@@ -6,7 +6,7 @@ const QRCodeDisplay: React.FC = () => {
   useEffect(() => {
     const generateQRCode = async () => {
       // Using QRServer API for better quality QR codes
-      const url = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('https://progettoseme-bolt.netlify.app/')}&format=svg&bgcolor=FFFFFF`;
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('https://nutri40.netlify.app/')}&format=svg&bgcolor=FFFFFF`;
       setQrCodeUrl(url);
     };
 
