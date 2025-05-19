@@ -15,7 +15,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showFreeOnly, setShowFreeOnly] = useState(false);
+  const [showFreeOnly, setShowFreeOnly] = useState(true); // Inizia mostrando solo i modelli gratuiti
 
   useEffect(() => {
     const getModels = async () => {
@@ -23,18 +23,34 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
         setIsLoading(true);
         const apiModels = await fetchModels();
         
-        const transformedModels: AIModel[] = apiModels.map((model: any) => ({
-          id: model.id,
-          name: model.name,
-          provider: model.provider,
-          description: model.description || 'Nessuna descrizione disponibile',
-          strengths: model.strengths || ['Modello AI per uso generale'],
-          capabilities: model.capabilities || ['Generazione di testo'],
-          free: model.pricing?.hourly === 0 || false
-        }));
+        const transformedModels: AIModel[] = apiModels.map((model: any) => {
+          // Miglioramento della logica per determinare se un modello è gratuito
+          const isFree = 
+            (model.pricing?.input === 0 && model.pricing?.output === 0) || 
+            (model.pricing?.hourly === 0) ||
+            model.id.toLowerCase().includes('free');
+          
+          return {
+            id: model.id,
+            name: model.name,
+            provider: model.provider,
+            description: model.description || 'Nessuna descrizione disponibile',
+            strengths: model.strengths || ['Modello AI per uso generale'],
+            capabilities: model.capabilities || ['Generazione di testo'],
+            free: isFree
+          };
+        });
+        
+        // Aggiungi un log per debug
+        console.log('Modelli disponibili:', transformedModels);
+        console.log('Modelli gratuiti:', transformedModels.filter(m => m.free));
         
         setModels(transformedModels);
-        setFilteredModels(transformedModels);
+        // Applica immediatamente il filtro per i modelli gratuiti
+        const freeModels = showFreeOnly 
+          ? transformedModels.filter(model => model.free)
+          : transformedModels;
+        setFilteredModels(freeModels);
       } catch (err) {
         setError('Impossibile caricare i modelli AI. Riprova più tardi.');
         console.error('Errore nel caricamento dei modelli:', err);
@@ -44,7 +60,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
     };
 
     getModels();
-  }, []);
+  }, [showFreeOnly]);
 
   useEffect(() => {
     let result = models;
