@@ -15,7 +15,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showFreeOnly, setShowFreeOnly] = useState(false);
+  const [showFreeOnly, setShowFreeOnly] = useState(true); // Impostato a true di default
 
   useEffect(() => {
     const getModels = async () => {
@@ -40,8 +40,9 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
           };
         });
         
+        // Mostra solo modelli gratuiti di default
         setModels(transformedModels);
-        setFilteredModels(transformedModels);
+        setFilteredModels(transformedModels.filter(model => model.free));
       } catch (err) {
         setError('Impossibile caricare i modelli AI. Riprova più tardi.');
         console.error('Errore nel caricamento dei modelli:', err);
@@ -63,12 +64,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
       );
     }
     
-    if (showFreeOnly) {
-      result = result.filter(model => model.free);
-    }
+    // Mostra sempre e solo modelli gratuiti
+    result = result.filter(model => model.free);
     
     setFilteredModels(result);
-  }, [searchQuery, showFreeOnly, models]);
+  }, [searchQuery, models]);
 
   const handleSelectModel = (model: AIModel) => {
     setSelectedModel(model);
@@ -102,15 +102,10 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="mt-2 flex items-center">
-            <input
-              type="checkbox"
-              id="free-only"
-              checked={showFreeOnly}
-              onChange={() => setShowFreeOnly(!showFreeOnly)}
-              className="mr-2"
-            />
-            <label htmlFor="free-only" className="text-sm dark:text-gray-300">Mostra solo modelli gratuiti</label>
+          <div className="mt-2">
+            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+              Showing only free models
+            </p>
           </div>
         </div>
 
@@ -123,7 +118,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
             <div className="text-center text-red-500 py-6">{error}</div>
           ) : filteredModels.length === 0 ? (
             <div className="text-center text-gray-500 dark:text-gray-400 py-6">
-              Nessun modello trovato con i criteri selezionati
+              Nessun modello gratuito trovato. Riprova più tardi.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
@@ -142,11 +137,9 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
                       <h3 className="font-medium dark:text-white">{model.name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{model.provider}</p>
                     </div>
-                    {model.free && (
-                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
-                        Gratuito
-                      </span>
-                    )}
+                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
+                      Gratuito
+                    </span>
                   </div>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{model.description}</p>
                   
@@ -173,7 +166,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
 
         <div className="p-4 border-t flex justify-between items-center dark:border-gray-700">
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            {filteredModels.length} modelli disponibili
+            {filteredModels.length} modelli gratuiti disponibili
           </span>
           <div className="flex space-x-2">
             <button
