@@ -1,11 +1,12 @@
 // Utility functions for interacting with OpenRouter API
+const OPENROUTER_API_KEY = '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';
 
 export const fetchModels = async (): Promise<any[]> => {
   try {
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'HTTP-Referer': window.location.href,
         'X-Title': 'BenessereNutri',
         'Content-Type': 'application/json'
@@ -33,7 +34,7 @@ export const generateAIResponse = async (
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'HTTP-Referer': window.location.href,
         'X-Title': 'BenessereNutri',
         'Content-Type': 'application/json'
