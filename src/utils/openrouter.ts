@@ -1,7 +1,7 @@
 // Utility functions for interacting with OpenRouter API
 
-// Lista di modelli gratuiti affidabili che sappiamo funzionare
-const RELIABLE_FREE_MODELS = [
+// Elenco di modelli consigliati (non sostitutivi)
+const RECOMMENDED_MODELS = [
   'openai/gpt-3.5-turbo',
   'anthropic/claude-instant-1.2',
   'google/gemini-pro',
@@ -10,7 +10,6 @@ const RELIABLE_FREE_MODELS = [
 
 export const fetchModels = async (): Promise<any[]> => {
   try {
-    // Prima tenta di ottenere i modelli dall'API
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       method: 'GET',
       headers: {
@@ -21,40 +20,18 @@ export const fetchModels = async (): Promise<any[]> => {
       }
     });
 
-    // Se la risposta è valida, procedi normalmente
-    if (response.ok) {
-      const data = await response.json();
-      // Filtra solo modelli gratuiti
-      const freeModels = (data.data || []).filter((model: any) => 
-        model.pricing?.hourly === 0 || 
-        (model.name && model.name.toLowerCase().includes('free'))
-      );
-      return freeModels;
-    } else {
-      console.warn("Impossibile ottenere i modelli dall'API, utilizzo modelli di riserva", response.status);
-      // Se c'è un errore, restituisci una lista di modelli predefiniti funzionanti
-      return RELIABLE_FREE_MODELS.map(id => ({
-        id,
-        name: id.split('/')[1],
-        provider: id.split('/')[0],
-        description: "Modello affidabile per generare testo.",
-        strengths: ["Generazione di testo"],
-        capabilities: ["Generazione di testo"],
-        free: true
-      }));
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status}`);
     }
+
+    const data = await response.json();
+    const models = data.data || [];
+    
+    // Trasforma i modelli ma non filtrare - questo verrà fatto dall'interfaccia
+    return models;
   } catch (error) {
     console.error('Error fetching models:', error);
-    // Restituisci i modelli di riserva in caso di errore
-    return RELIABLE_FREE_MODELS.map(id => ({
-      id,
-      name: id.split('/')[1],
-      provider: id.split('/')[0],
-      description: "Modello affidabile per generare testo.",
-      strengths: ["Generazione di testo"],
-      capabilities: ["Generazione di testo"],
-      free: true
-    }));
+    return [];
   }
 };
 
@@ -66,35 +43,28 @@ export const generateAIResponse = async (
   const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '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';
 
   try {
-    // Limita la lunghezza del prompt a 1000 caratteri per evitare errori
-    const truncatedPrompt = prompt.length > 1000 ? prompt.substring(0, 1000) + "..." : prompt;
+    // Limitiamo la lunghezza del prompt per maggiore stabilità, ma manteniamo più contenuti
+    const truncatedPrompt = prompt.length > 2000 ? prompt.substring(0, 2000) + "..." : prompt;
     
-    console.log(`Generazione risposta con modello: ${modelId}`);
+    console.log(`Generating response with model: ${modelId}`);
     
-    // Assicurati che il modello esista nella lista di affidabili
-    let finalModelId = modelId;
-    if (!RELIABLE_FREE_MODELS.includes(modelId)) {
-      console.warn(`Modello ${modelId} non nella lista dei modelli affidabili, usando alternativa`);
-      finalModelId = RELIABLE_FREE_MODELS[0]; // Usa il primo modello affidabile come fallback
-    }
-
     const payload = {
-      model: finalModelId,
+      model: modelId,
       messages: [
         {
           role: 'system',
-          content: 'Sei un esperto assistente di nutrizione e fitness. Rispondi in italiano con risposte brevi e dirette.'
+          content: 'Sei un esperto assistente di nutrizione e fitness. Rispondi in italiano con dettagli utili e pratici.'
         },
         {
           role: 'user',
           content: truncatedPrompt
         }
       ],
-      temperature: 0.5,  // Ridotto per risposte più precise
-      max_tokens: 800    // Limitato per evitare errori
+      temperature: 0.7,  // Valore originale
+      max_tokens: 1200   // Aumentato per consentire piani più dettagliati
     };
 
-    console.log('Payload della richiesta:', JSON.stringify(payload));
+    console.log('Sending request with payload', { model: modelId, promptLength: truncatedPrompt.length });
     
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -107,40 +77,21 @@ export const generateAIResponse = async (
       body: JSON.stringify(payload)
     });
 
-    console.log('Stato risposta API:', response.status);
+    console.log('API response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Errore API:', response.status, errorText);
-      
-      // In caso di errore, prova con un modello alternativo
-      if (finalModelId !== RELIABLE_FREE_MODELS[0]) {
-        console.log('Riprovo con un modello alternativo');
-        return generateAIResponse(RELIABLE_FREE_MODELS[0], prompt, context);
-      }
-      
+      console.error('API error:', response.status, errorText);
       throw new Error(`API request failed: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Risposta API ricevuta correttamente');
+    console.log('API response received successfully');
     
     return data.choices[0]?.message?.content || 'Non è stato possibile generare una risposta.';
   } catch (error) {
     console.error('Error generating AI response:', error);
-    
-    // Genera una risposta fissa in caso di errore persistente
-    return `
-# Piano di esempio
-Ci scusiamo, non è stato possibile generare un piano personalizzato in questo momento.
-
-## Suggerimenti generali
-- Mantenere una dieta bilanciata con frutta e verdura
-- Bere molta acqua durante il giorno
-- Fare attività fisica regolare
-- Limitare cibi processati e zuccheri
-
-Per favore riprova più tardi quando il servizio sarà nuovamente disponibile.`;
+    return 'Si è verificato un errore durante la generazione della risposta. Riprova con un altro modello o più tardi.';
   }
 };
 
@@ -149,21 +100,28 @@ export const generateNutritionPlan = async (
   userProfile: any,
   seasonalFoods: any[]
 ): Promise<string> => {
-  // Prompt estremamente semplificato
+  // Ripristino di un prompt più dettagliato ma non eccessivo
   const prompt = `
-    Crea un semplice piano alimentare di 2 giorni per una persona di ${userProfile.age} anni con livello di attività ${userProfile.activityLevel}.
-    Obiettivo: ${userProfile.fitnessGoal}.
-    Formatta con: 
-    # Piano Nutrizionale
+    Genera un piano nutrizionale personalizzato basato su queste informazioni:
+    - Età: ${userProfile.age}
+    - Livello di Attività: ${userProfile.activityLevel}
+    - Restrizioni Alimentari: ${userProfile.dietaryRestrictions.join(', ') || 'Nessuna'}
+    - Obiettivo Fitness: ${userProfile.fitnessGoal}
+    
+    Include questi alimenti stagionali nel piano:
+    ${seasonalFoods.map(food => `- ${food.name}`).join('\n')}
+    
+    Crea un piano alimentare di 3 giorni con colazione, pranzo e cena.
+    Includi una breve descrizione per ogni pasto.
+    
+    Formatta la risposta usando:
+    # Piano Nutrizionale Personalizzato
     ## Giorno 1
     ### Colazione
-    (menu)
     ### Pranzo
-    (menu)
     ### Cena
-    (menu)
-    ## Giorno 2
-    (ripeti)
+    
+    (Ripeti per ogni giorno)
   `;
   
   return generateAIResponse(modelId, prompt);
@@ -173,17 +131,26 @@ export const generateFitnessPlan = async (
   modelId: string,
   userProfile: any
 ): Promise<string> => {
-  // Prompt estremamente semplificato
+  // Ripristino di un prompt più dettagliato ma non eccessivo
   const prompt = `
-    Crea un piano fitness basic di 3 esercizi per una persona di ${userProfile.age} anni con livello di attività ${userProfile.activityLevel}.
-    Formatta con:
-    # Piano Fitness
-    ## Esercizio 1
-    (nome e descrizione)
-    ## Esercizio 2
-    (nome e descrizione)
-    ## Esercizio 3
-    (nome e descrizione)
+    Crea un piano fitness da fare a casa basato su queste informazioni:
+    - Età: ${userProfile.age}
+    - Livello di Attività: ${userProfile.activityLevel}
+    - Obiettivo Fitness: ${userProfile.fitnessGoal}
+    
+    Fornisci un piano di allenamento di 3 giorni che includa:
+    - Esercizi quotidiani (senza attrezzatura speciale)
+    - Serie e ripetizioni suggerite
+    - Una breve descrizione di come eseguire ogni esercizio correttamente
+    
+    Formatta la risposta usando:
+    # Piano di Allenamento Personalizzato
+    ## Giorno 1
+    ### Riscaldamento
+    ### Allenamento Principale
+    ### Defaticamento
+    
+    (Ripeti per ogni giorno)
   `;
   
   return generateAIResponse(modelId, prompt);
