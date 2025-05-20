@@ -40,12 +40,6 @@ const NutritionPlanForm: React.FC = () => {
       return;
     }
 
-    // Verifica che il modello selezionato sia gratuito
-    if (!selectedModel.free) {
-      setError('È possibile generare piani solo con modelli gratuiti. Seleziona un modello gratuito.');
-      return;
-    }
-
     try {
       setIsGenerating(true);
       setError(null);
@@ -66,15 +60,10 @@ const NutritionPlanForm: React.FC = () => {
       ];
       
       const plan = await generateNutritionPlan(selectedModel.id, userProfile, seasonalFoods);
-      
-      if (plan.includes('Si è verificato un errore')) {
-        throw new Error('Errore API');
-      }
-      
       setNutritionPlan(plan);
     } catch (err) {
       console.error('Errore nella generazione del piano nutrizionale:', err);
-      setError('Impossibile generare il piano nutrizionale. Assicurati di utilizzare un modello gratuito e riprova più tardi.');
+      setError('Impossibile generare il piano nutrizionale. Riprova più tardi.');
     } finally {
       setIsGenerating(false);
     }
@@ -102,12 +91,6 @@ const NutritionPlanForm: React.FC = () => {
       {!selectedModel && (
         <div className="mb-4 p-3 bg-yellow-100 text-yellow-700 rounded-lg dark:bg-yellow-900 dark:text-yellow-300">
           Seleziona un modello AI dal menu Modelli AI prima di creare un piano nutrizionale.
-        </div>
-      )}
-
-      {selectedModel && !selectedModel.free && (
-        <div className="mb-4 p-3 bg-yellow-100 text-yellow-700 rounded-lg dark:bg-yellow-900 dark:text-yellow-300">
-          Solo i modelli gratuiti possono essere utilizzati. Seleziona un modello gratuito.
         </div>
       )}
       
@@ -212,7 +195,7 @@ const NutritionPlanForm: React.FC = () => {
         
         <button
           type="submit"
-          disabled={isGenerating || !selectedModel || !selectedModel.free}
+          disabled={isGenerating || !selectedModel}
           className="w-full py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isGenerating ? (
