@@ -11,7 +11,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="space-y-12">
       <section className="text-center">
-        <h1 className="text-4xl font-bold mb-4 dark:text-white">Nutri 4.0</h1>
+        <h1 className="text-4xl font-bold mb-4 dark:text-white">BenessereNutri</h1>
         <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
           Il tuo assistente AI per piani personalizzati di nutrizione e fitness.
         </p>
@@ -69,7 +69,7 @@ const HomePage: React.FC = () => {
           <div className="md:w-2/3">
             <h2 className="text-2xl font-bold mb-4">Guida alla Salute con AI</h2>
             <p className="mb-6">
-              Nutri 4.0 utilizza modelli AI avanzati per fornire consigli personalizzati su nutrizione e fitness. 
+              BenessereNutri utilizza modelli AI avanzati per fornire consigli personalizzati su nutrizione e fitness. 
               Scegli tra una gamma di modelli quello che meglio si adatta alle tue esigenze.
             </p>
             <button

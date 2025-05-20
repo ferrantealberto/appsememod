@@ -31,7 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="bg-emerald-600 dark:bg-emerald-800 text-white shadow-md">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <Link to="/" className="font-bold text-xl">Nutri 4.0</Link>
+            <Link to="/" className="font-bold text-xl">BenessereNutri</Link>
           </div>
           
           <div className="hidden md:flex space-x-6">
@@ -108,7 +108,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <footer className="bg-emerald-600 dark:bg-emerald-800 text-white py-6">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="mb-4 md:mb-0">© 2025 Nutri 4.0. Tutti i diritti riservati. - Powered by Ferrante Alberto</p>
+            <p className="mb-4 md:mb-0">© 2025 BenessereNutri. Tutti i diritti riservati. - Powered by Ferrante Alberto</p>
             <div className="flex space-x-6">
               <button onClick={() => setIsPopupOpen(true)} className="hover:text-emerald-200 transition-colors">Privacy</button>
               <button onClick={() => setIsPopupOpen(true)} className="hover:text-emerald-200 transition-colors">Termini di Servizio</button>

@@ -5,7 +5,7 @@ import { generateFitnessPlan } from '../../utils/openrouter';
 import FitnessPlanDisplay from './FitnessPlanDisplay';
 
 const FitnessPlanForm: React.FC = () => {
-  const { selectedModel, setIsModelSelectorOpen } = useAppContext();
+  const { selectedModel } = useAppContext();
   const [age, setAge] = useState<number>(30);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>(ActivityLevel.ACTIVE);
   const [goal, setGoal] = useState<FitnessGoal>(FitnessGoal.GENERAL_FITNESS);
@@ -31,17 +31,11 @@ const FitnessPlanForm: React.FC = () => {
         fitnessGoal: goal
       };
       
-      console.log(`Generazione piano fitness con modello: ${selectedModel.id}`);
       const plan = await generateFitnessPlan(selectedModel.id, userProfile);
-      
-      if (plan === 'Si è verificato un errore. Riprova più tardi o seleziona un altro modello.') {
-        throw new Error('Errore nella generazione del piano fitness');
-      }
-      
       setFitnessPlan(plan);
     } catch (err) {
       console.error('Errore nella generazione del piano fitness:', err);
-      setError('Impossibile generare il piano fitness. Prova a selezionare un altro modello AI.');
+      setError('Impossibile generare il piano fitness. Riprova più tardi.');
     } finally {
       setIsGenerating(false);
     }
@@ -63,26 +57,12 @@ const FitnessPlanForm: React.FC = () => {
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg dark:bg-red-900 dark:text-red-300">
           {error}
-          {error.includes('selezionare un altro modello') && (
-            <button 
-              onClick={() => setIsModelSelectorOpen(true)}
-              className="ml-2 underline hover:no-underline"
-            >
-              Seleziona un altro modello
-            </button>
-          )}
         </div>
       )}
       
       {!selectedModel && (
         <div className="mb-4 p-3 bg-yellow-100 text-yellow-700 rounded-lg dark:bg-yellow-900 dark:text-yellow-300">
           Seleziona un modello AI dal menu Modelli AI prima di creare un piano fitness.
-          <button 
-            onClick={() => setIsModelSelectorOpen(true)}
-            className="ml-2 underline hover:no-underline"
-          >
-            Seleziona Modello
-          </button>
         </div>
       )}
       
@@ -163,38 +143,23 @@ const FitnessPlanForm: React.FC = () => {
           </div>
         </div>
         
-        <div className="pt-2">
-          {selectedModel && (
-            <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
-              Utilizzerai il modello: <strong>{selectedModel.name}</strong> 
-              <button 
-                onClick={() => setIsModelSelectorOpen(true)}
-                className="ml-2 text-emerald-600 dark:text-emerald-400 underline hover:no-underline"
-                type="button"
-              >
-                Cambia
-              </button>
-            </div>
+        <button
+          type="submit"
+          disabled={isGenerating || !selectedModel}
+          className="w-full py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isGenerating ? (
+            <span className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Generazione Piano in Corso...
+            </span>
+          ) : (
+            'Genera Piano Fitness'
           )}
-          
-          <button
-            type="submit"
-            disabled={isGenerating || !selectedModel}
-            className="w-full py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isGenerating ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Generazione Piano in Corso...
-              </span>
-            ) : (
-              'Genera Piano Fitness'
-            )}
-          </button>
-        </div>
+        </button>
       </form>
     </div>
   );
