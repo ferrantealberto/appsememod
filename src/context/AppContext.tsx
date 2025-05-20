@@ -1,16 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { AIModel, UserProfile, Season } from '../types';
-
-// Modello predefinito affidabile
-const DEFAULT_MODEL: AIModel = {
-  id: 'openai/gpt-3.5-turbo',
-  name: 'gpt-3.5-turbo',
-  provider: 'openai',
-  description: 'Modello affidabile per generare testo.',
-  strengths: ['Generazione di testo'],
-  capabilities: ['Generazione di testo'],
-  free: true
-};
 
 interface AppContextType {
   selectedModel: AIModel | null;
@@ -41,7 +30,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return Season.WINTER;
   };
 
-  const [selectedModel, setSelectedModel] = useState<AIModel | null>(DEFAULT_MODEL); // Imposta un modello predefinito
+  const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
   const [currentSeason, setCurrentSeason] = useState<Season>(getCurrentSeason());
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState<boolean>(false);
