@@ -4,8 +4,8 @@ import { fetchModels } from '../../utils/openrouter';
 import { AIModel } from '../../types';
 import { useAppContext } from '../../context/AppContext';
 
-// Lista di modelli affidabili che sappiamo funzionare
-const RELIABLE_FREE_MODELS = [
+// Lista di modelli consigliati
+const RECOMMENDED_MODELS = [
   'openai/gpt-3.5-turbo',
   'anthropic/claude-instant-1.2',
   'google/gemini-pro',
@@ -31,63 +31,35 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
         setIsLoading(true);
         const apiModels = await fetchModels();
         
-        // Assicuriamoci che almeno i modelli affidabili siano sempre presenti
-        const reliableModels = RELIABLE_FREE_MODELS.map(id => ({
-          id,
-          name: id.split('/')[1],
-          provider: id.split('/')[0],
-          description: "Modello affidabile per generare testo.",
-          strengths: ["Generazione di testo"],
-          capabilities: ["Generazione di testo"],
-          free: true
-        }));
+        const transformedModels: AIModel[] = apiModels.map((model: any) => {
+          // Controlla se il modello è gratuito dal pricing o se ha "free" nel nome
+          const isFree = model.pricing?.hourly === 0 || 
+                        (model.name && model.name.toLowerCase().includes('free')) ||
+                        false;
+          
+          return {
+            id: model.id,
+            name: model.name,
+            provider: model.provider,
+            description: model.description || 'Nessuna descrizione disponibile',
+            strengths: model.strengths || ['Modello AI per uso generale'],
+            capabilities: model.capabilities || ['Generazione di testo'],
+            free: isFree
+          };
+        });
         
-        // Combina i modelli dall'API con quelli affidabili, evitando duplicati
-        const apiModelIds = apiModels.map((m: any) => m.id);
-        const uniqueReliableModels = reliableModels.filter(m => !apiModelIds.includes(m.id));
-        
-        const allModels = [...apiModels, ...uniqueReliableModels];
-        
-        setModels(allModels);
-        setFilteredModels(allModels.filter(model => model.free));
-        
-        // Se non c'è un modello selezionato, seleziona il primo modello affidabile
-        if (!selectedModel) {
-          const defaultModel = allModels.find(m => m.id === RELIABLE_FREE_MODELS[0]);
-          if (defaultModel) {
-            setSelectedModel(defaultModel);
-          }
-        }
+        setModels(transformedModels);
+        setFilteredModels(transformedModels.filter(model => model.free));
       } catch (err) {
         console.error('Errore nel caricamento dei modelli:', err);
-        
-        // In caso di errore, carica almeno i modelli affidabili
-        const fallbackModels = RELIABLE_FREE_MODELS.map(id => ({
-          id,
-          name: id.split('/')[1],
-          provider: id.split('/')[0],
-          description: "Modello affidabile per generare testo.",
-          strengths: ["Generazione di testo"],
-          capabilities: ["Generazione di testo"],
-          free: true
-        }));
-        
-        setModels(fallbackModels);
-        setFilteredModels(fallbackModels);
-        
-        // Se non c'è un modello selezionato, seleziona il primo modello affidabile
-        if (!selectedModel) {
-          setSelectedModel(fallbackModels[0]);
-        }
-        
-        setError('Impossibile caricare tutti i modelli AI. Vengono mostrati solo i modelli predefiniti.');
+        setError('Impossibile caricare i modelli AI. Riprova più tardi.');
       } finally {
         setIsLoading(false);
       }
     };
 
     getModels();
-  }, [selectedModel, setSelectedModel]);
+  }, []);
 
   useEffect(() => {
     let result = models;
@@ -99,16 +71,16 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
       );
     }
     
-    // Mostra sempre e solo modelli gratuiti
+    // Mostra solo modelli gratuiti
     result = result.filter(model => model.free);
     
-    // Evidenzia modelli affidabili mettendoli in cima
+    // Metti in evidenza i modelli consigliati
     result.sort((a, b) => {
-      const aIsReliable = RELIABLE_FREE_MODELS.includes(a.id);
-      const bIsReliable = RELIABLE_FREE_MODELS.includes(b.id);
+      const aIsRecommended = RECOMMENDED_MODELS.includes(a.id);
+      const bIsRecommended = RECOMMENDED_MODELS.includes(b.id);
       
-      if (aIsReliable && !bIsReliable) return -1;
-      if (!aIsReliable && bIsReliable) return 1;
+      if (aIsRecommended && !bIsRecommended) return -1;
+      if (!aIsRecommended && bIsRecommended) return 1;
       return 0;
     });
     
@@ -120,8 +92,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
     onClose();
   };
 
-  const isReliableModel = (modelId: string) => {
-    return RELIABLE_FREE_MODELS.includes(modelId);
+  const isRecommendedModel = (modelId: string) => {
+    return RECOMMENDED_MODELS.includes(modelId);
   };
 
   return (
@@ -155,11 +127,6 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
             <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
               Vengono mostrati solo modelli gratuiti
             </p>
-            {error && (
-              <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                {error}
-              </p>
-            )}
           </div>
         </div>
 
@@ -168,9 +135,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
             <div className="flex justify-center items-center h-40">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
             </div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-6">{error}</div>
           ) : filteredModels.length === 0 ? (
             <div className="text-center text-gray-500 dark:text-gray-400 py-6">
-              Nessun modello gratuito trovato. Riprova più tardi.
+              Nessun modello gratuito trovato con i criteri selezionati
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
@@ -180,7 +149,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
                   className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
                     selectedModel?.id === model.id 
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
-                      : isReliableModel(model.id)
+                      : isRecommendedModel(model.id)
                         ? 'border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-800'
                         : 'border-gray-200 dark:border-gray-700'
                   }`}
@@ -192,7 +161,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
                       <p className="text-sm text-gray-500 dark:text-gray-400">{model.provider}</p>
                     </div>
                     <div className="flex gap-1">
-                      {isReliableModel(model.id) && (
+                      {isRecommendedModel(model.id) && (
                         <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
                           Consigliato
                         </span>
@@ -204,7 +173,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
                   </div>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{model.description}</p>
                   
-                  {isReliableModel(model.id) && (
+                  {isRecommendedModel(model.id) && (
                     <div className="mt-2">
                       <p className="text-xs text-blue-600 dark:text-blue-400">
                         Questo modello è stato testato e funziona bene con l'applicazione.
