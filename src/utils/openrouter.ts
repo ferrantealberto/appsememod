@@ -5,7 +5,7 @@ export const fetchModels = async (): Promise<any[]> => {
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY || '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'}`,
         'HTTP-Referer': window.location.href,
         'X-Title': 'BenessereNutri',
         'Content-Type': 'application/json'
@@ -17,7 +17,12 @@ export const fetchModels = async (): Promise<any[]> => {
     }
 
     const data = await response.json();
-    return data.data || [];
+    // Filtra solo modelli gratuiti
+    const freeModels = (data.data || []).filter((model: any) => 
+      model.pricing?.hourly === 0 || 
+      (model.name && model.name.toLowerCase().includes('free'))
+    );
+    return freeModels;
   } catch (error) {
     console.error('Error fetching models:', error);
     return [];
@@ -30,10 +35,13 @@ export const generateAIResponse = async (
   context: Record<string, any> = {}
 ): Promise<string> => {
   try {
+    // Limitiamo la lunghezza del prompt per evitare errori
+    const truncatedPrompt = prompt.length > 4000 ? prompt.substring(0, 4000) + "..." : prompt;
+    
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY || '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'}`,
         'HTTP-Referer': window.location.href,
         'X-Title': 'BenessereNutri',
         'Content-Type': 'application/json'
@@ -47,15 +55,17 @@ export const generateAIResponse = async (
           },
           {
             role: 'user',
-            content: prompt
+            content: truncatedPrompt
           }
         ],
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 1500
       })
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error Details:', errorData);
       throw new Error(`API request failed: ${response.status}`);
     }
 
@@ -63,7 +73,7 @@ export const generateAIResponse = async (
     return data.choices[0]?.message?.content || 'Non è stato possibile generare una risposta.';
   } catch (error) {
     console.error('Error generating AI response:', error);
-    return 'Si è verificato un errore. Riprova più tardi.';
+    return 'Si è verificato un errore durante la generazione della risposta. Assicurati di selezionare un modello gratuito e riprova più tardi.';
   }
 };
 
@@ -72,29 +82,20 @@ export const generateNutritionPlan = async (
   userProfile: any,
   seasonalFoods: any[]
 ): Promise<string> => {
+  // Riduciamo la complessità del prompt
   const prompt = `
-    Genera un piano nutrizionale personalizzato basato su queste informazioni:
+    Crea un piano nutrizionale semplice per 3 giorni considerando:
     - Età: ${userProfile.age}
     - Livello di Attività: ${userProfile.activityLevel}
-    - Restrizioni Alimentari: ${userProfile.dietaryRestrictions.join(', ')}
-    - Obiettivo Fitness: ${userProfile.fitnessGoal}
+    - Restrizioni: ${userProfile.dietaryRestrictions.join(', ') || 'Nessuna'}
+    - Obiettivo: ${userProfile.fitnessGoal}
     
-    Considera questi alimenti stagionali nel piano:
-    ${seasonalFoods.map(food => `- ${food.name}`).join('\n')}
-    
-    Fornisci un piano alimentare di 7 giorni con colazione, pranzo, cena e spuntini.
-    Includi i macronutrienti stimati per ogni giorno.
-    
-    Formatta la risposta in modo chiaro usando i seguenti titoli:
-    # Piano Nutrizionale Personalizzato
+    Usa un formato semplice con:
+    # Piano Nutrizionale
     ## Giorno 1
     ### Colazione
     ### Pranzo
     ### Cena
-    ### Spuntini
-    ### Macronutrienti Giornalieri
-    
-    (Ripeti per ogni giorno della settimana)
   `;
   
   return generateAIResponse(modelId, prompt);
@@ -104,28 +105,18 @@ export const generateFitnessPlan = async (
   modelId: string,
   userProfile: any
 ): Promise<string> => {
+  // Riduciamo la complessità del prompt
   const prompt = `
-    Crea un piano fitness da fare a casa basato su queste informazioni:
+    Crea un piano fitness semplice da casa per 3 giorni considerando:
     - Età: ${userProfile.age}
     - Livello di Attività: ${userProfile.activityLevel}
-    - Obiettivo Fitness: ${userProfile.fitnessGoal}
+    - Obiettivo: ${userProfile.fitnessGoal}
     
-    Fornisci un piano di allenamento di 7 giorni che includa:
-    - Esercizi quotidiani (senza attrezzatura speciale)
-    - Periodi di riposo
-    - Durata di ogni esercizio
-    - Livello di difficoltà
-    - Istruzioni per la corretta esecuzione
-    
-    Formatta la risposta in modo chiaro usando i seguenti titoli:
-    # Piano di Allenamento Personalizzato
+    Usa un formato semplice con:
+    # Piano Fitness
     ## Giorno 1
-    ### Riscaldamento
-    ### Allenamento Principale
-    ### Defaticamento
+    ### Esercizi
     ### Note
-    
-    (Ripeti per ogni giorno della settimana)
   `;
   
   return generateAIResponse(modelId, prompt);
