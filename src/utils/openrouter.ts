@@ -1,5 +1,5 @@
 // Utility functions for interacting with OpenRouter API
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = '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';
 
 export const fetchModels = async (): Promise<any[]> => {
   try {
