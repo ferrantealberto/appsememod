@@ -8,6 +8,25 @@ interface ModelSelectorProps {
   onClose: () => void;
 }
 
+// Modello di fallback predefinito (Anthropic Claude 3 Haiku)
+const DEFAULT_MODEL: AIModel = {
+  id: 'anthropic/claude-3-haiku-20240307',
+  name: 'Claude 3 Haiku',
+  provider: 'Anthropic',
+  description: 'Un modello veloce e affidabile per assistenza nutrizionale e fitness, ottimizzato per l\'utilizzo in questa app.',
+  strengths: ['Veloce', 'Affidabile', 'Specializzato in nutrizione e fitness'],
+  capabilities: ['Generazione di testo', 'Piani personalizzati'],
+  free: true
+};
+
+// Lista di ID di modelli noti per essere gratuiti
+const KNOWN_FREE_MODELS = [
+  'anthropic/claude-3-haiku-20240307',
+  'anthropic/claude-instant-1.2',
+  'google/gemini-pro',
+  'mistralai/mistral-7b-instruct'
+];
+
 const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
   const { selectedModel, setSelectedModel } = useAppContext();
   const [models, setModels] = useState<AIModel[]>([]);
@@ -18,28 +37,47 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
   const [showFreeOnly, setShowFreeOnly] = useState(true); // Inizia mostrando solo i modelli gratuiti
 
   useEffect(() => {
+    // Se non c'è un modello selezionato, imposta il modello predefinito
+    if (!selectedModel) {
+      setSelectedModel(DEFAULT_MODEL);
+    }
+    
     const getModels = async () => {
       try {
         setIsLoading(true);
         const apiModels = await fetchModels();
+        
+        if (apiModels.length === 0) {
+          // Se non ci sono modelli dall'API, usa almeno il modello predefinito
+          const fallbackModels = [DEFAULT_MODEL];
+          setModels(fallbackModels);
+          setFilteredModels(fallbackModels);
+          return;
+        }
         
         const transformedModels: AIModel[] = apiModels.map((model: any) => {
           // Miglioramento della logica per determinare se un modello è gratuito
           const isFree = 
             (model.pricing?.input === 0 && model.pricing?.output === 0) || 
             (model.pricing?.hourly === 0) ||
-            model.id.toLowerCase().includes('free');
+            model.id.toLowerCase().includes('free') ||
+            KNOWN_FREE_MODELS.includes(model.id);
           
           return {
             id: model.id,
-            name: model.name,
-            provider: model.provider,
-            description: model.description || 'Nessuna descrizione disponibile',
+            name: model.name || model.id.split('/').pop(),
+            provider: model.provider || model.id.split('/')[0],
+            description: model.description || 'Modello AI disponibile tramite OpenRouter.',
             strengths: model.strengths || ['Modello AI per uso generale'],
             capabilities: model.capabilities || ['Generazione di testo'],
             free: isFree
           };
         });
+        
+        // Aggiungi il modello predefinito se non è già presente
+        if (!transformedModels.some(m => m.id === DEFAULT_MODEL.id)) {
+          transformedModels.push(DEFAULT_MODEL);
+        }
         
         // Aggiungi un log per debug
         console.log('Modelli disponibili:', transformedModels);
@@ -52,15 +90,19 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
           : transformedModels;
         setFilteredModels(freeModels);
       } catch (err) {
-        setError('Impossibile caricare i modelli AI. Riprova più tardi.');
         console.error('Errore nel caricamento dei modelli:', err);
+        setError('Impossibile caricare i modelli AI. Utilizzando un modello predefinito.');
+        // In caso di errore, usa almeno il modello predefinito
+        const fallbackModels = [DEFAULT_MODEL];
+        setModels(fallbackModels);
+        setFilteredModels(fallbackModels);
       } finally {
         setIsLoading(false);
       }
     };
 
     getModels();
-  }, [showFreeOnly]);
+  }, [showFreeOnly, setSelectedModel, selectedModel]);
 
   useEffect(() => {
     let result = models;
@@ -74,6 +116,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
     
     if (showFreeOnly) {
       result = result.filter(model => model.free);
+    }
+    
+    // Se non ci sono risultati, mostra almeno il modello predefinito
+    if (result.length === 0 && showFreeOnly) {
+      result = [DEFAULT_MODEL];
     }
     
     setFilteredModels(result);
@@ -129,7 +176,17 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
             </div>
           ) : error ? (
-            <div className="text-center text-red-500 py-6">{error}</div>
+            <div className="text-center py-6">
+              <p className="text-red-500 mb-4">{error}</p>
+              <div className="border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500"
+                   onClick={() => handleSelectModel(DEFAULT_MODEL)}>
+                <h3 className="font-medium dark:text-white">{DEFAULT_MODEL.name}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{DEFAULT_MODEL.provider}</p>
+                <span className="mt-2 inline-block bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
+                  Modello predefinito
+                </span>
+              </div>
+            </div>
           ) : filteredModels.length === 0 ? (
             <div className="text-center text-gray-500 dark:text-gray-400 py-6">
               Nessun modello trovato con i criteri selezionati
@@ -151,11 +208,18 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
                       <h3 className="font-medium dark:text-white">{model.name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{model.provider}</p>
                     </div>
-                    {model.free && (
-                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
-                        Gratuito
-                      </span>
-                    )}
+                    <div className="flex flex-col gap-1 items-end">
+                      {model.free && (
+                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
+                          Gratuito
+                        </span>
+                      )}
+                      {model.id === DEFAULT_MODEL.id && (
+                        <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+                          Consigliato
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{model.description}</p>
                   
