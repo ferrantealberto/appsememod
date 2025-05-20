@@ -30,7 +30,8 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
           description: model.description || 'Nessuna descrizione disponibile',
           strengths: model.strengths || ['Modello AI per uso generale'],
           capabilities: model.capabilities || ['Generazione di testo'],
-          free: model.pricing?.hourly === 0 || false
+          // Modifica: controlla se il nome contiene "free" (case insensitive)
+          free: (model.name || '').toLowerCase().includes('free') || model.pricing?.hourly === 0 || false
         }));
         
         setModels(transformedModels);
