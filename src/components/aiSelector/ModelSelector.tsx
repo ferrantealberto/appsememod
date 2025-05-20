@@ -23,15 +23,22 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
         setIsLoading(true);
         const apiModels = await fetchModels();
         
-        const transformedModels: AIModel[] = apiModels.map((model: any) => ({
-          id: model.id,
-          name: model.name,
-          provider: model.provider,
-          description: model.description || 'Nessuna descrizione disponibile',
-          strengths: model.strengths || ['Modello AI per uso generale'],
-          capabilities: model.capabilities || ['Generazione di testo'],
-          free: model.pricing?.hourly === 0 || false
-        }));
+        const transformedModels: AIModel[] = apiModels.map((model: any) => {
+          // Controlla se il modello è gratuito dal pricing o se ha "free" nel nome
+          const isFree = model.pricing?.hourly === 0 || 
+                        (model.name && model.name.toLowerCase().includes('free')) ||
+                        false;
+          
+          return {
+            id: model.id,
+            name: model.name,
+            provider: model.provider,
+            description: model.description || 'Nessuna descrizione disponibile',
+            strengths: model.strengths || ['Modello AI per uso generale'],
+            capabilities: model.capabilities || ['Generazione di testo'],
+            free: isFree
+          };
+        });
         
         setModels(transformedModels);
         setFilteredModels(transformedModels);
