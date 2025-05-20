@@ -5,7 +5,7 @@ export const fetchModels = async (): Promise<any[]> => {
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY || 'sk-or-v1-test'}`,
         'HTTP-Referer': window.location.href,
         'X-Title': 'BenessereNutri',
         'Content-Type': 'application/json'
@@ -13,6 +13,8 @@ export const fetchModels = async (): Promise<any[]> => {
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error response from OpenRouter:', errorData);
       throw new Error(`Failed to fetch models: ${response.status}`);
     }
 
@@ -30,16 +32,21 @@ export const generateAIResponse = async (
   context: Record<string, any> = {}
 ): Promise<string> => {
   try {
+    // Fallback to default model if no model is provided
+    const finalModelId = modelId || 'anthropic/claude-3-haiku-20240307';
+    
+    console.log(`Generating response using model: ${finalModelId}`);
+
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY || 'sk-or-v1-test'}`,
         'HTTP-Referer': window.location.href,
         'X-Title': 'BenessereNutri',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: modelId,
+        model: finalModelId,
         messages: [
           {
             role: 'system',
@@ -55,7 +62,20 @@ export const generateAIResponse = async (
       })
     });
 
+    // Log the status for debugging
+    console.log(`API response status: ${response.status}`);
+
+    // Handle non-200 responses
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error response from OpenRouter:', errorData);
+      
+      // Se il modello scelto non è valido o non disponibile, prova con un modello di fallback
+      if (response.status === 404 || response.status === 400) {
+        console.log('Trying with fallback model claude-3-haiku-20240307');
+        return generateAIResponse('anthropic/claude-3-haiku-20240307', prompt, context);
+      }
+      
       throw new Error(`API request failed: ${response.status}`);
     }
 
@@ -63,7 +83,7 @@ export const generateAIResponse = async (
     return data.choices[0]?.message?.content || 'Non è stato possibile generare una risposta.';
   } catch (error) {
     console.error('Error generating AI response:', error);
-    return 'Si è verificato un errore. Riprova più tardi.';
+    return 'Si è verificato un errore. Riprova più tardi o seleziona un altro modello.';
   }
 };
 
