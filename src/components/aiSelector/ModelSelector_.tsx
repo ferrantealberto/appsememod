@@ -15,7 +15,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Rimuoviamo completamente lo stato showFreeOnly perché ora mostriamo sempre solo i modelli gratuiti
+  const [showFreeOnly, setShowFreeOnly] = useState(false);
 
   useEffect(() => {
     const getModels = async () => {
@@ -30,16 +30,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
           description: model.description || 'Nessuna descrizione disponibile',
           strengths: model.strengths || ['Modello AI per uso generale'],
           capabilities: model.capabilities || ['Generazione di testo'],
-          // Consideriamo gratuiti i modelli che hanno pricing.hourly === 0 O la parola "free" nel nome
-          free: model.pricing?.hourly === 0 || 
-                (model.name || '').toLowerCase().includes('free') || 
-                false
+          free: model.pricing?.hourly === 0 || false
         }));
         
-        // Filtriamo subito i modelli per mostrare solo quelli gratuiti
-        const freeModels = transformedModels.filter(model => model.free);
-        setModels(freeModels); // Salviamo solo i modelli gratuiti
-        setFilteredModels(freeModels); // Inizialmente mostriamo tutti i modelli gratuiti
+        setModels(transformedModels);
+        setFilteredModels(transformedModels);
       } catch (err) {
         setError('Impossibile caricare i modelli AI. Riprova più tardi.');
         console.error('Errore nel caricamento dei modelli:', err);
@@ -52,17 +47,21 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
   }, []);
 
   useEffect(() => {
-    // Filtriamo solo in base alla query di ricerca, poiché mostriamo già solo i modelli gratuiti
+    let result = models;
+    
     if (searchQuery) {
-      const result = models.filter(model => 
+      result = models.filter(model => 
         (model.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
         (model.provider || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredModels(result);
-    } else {
-      setFilteredModels(models); // Se non c'è query, mostriamo tutti i modelli gratuiti
     }
-  }, [searchQuery, models]);
+    
+    if (showFreeOnly) {
+      result = result.filter(model => model.free);
+    }
+    
+    setFilteredModels(result);
+  }, [searchQuery, showFreeOnly, models]);
 
   const handleSelectModel = (model: AIModel) => {
     setSelectedModel(model);
@@ -73,7 +72,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-xl">
         <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-          <h2 className="text-xl font-semibold dark:text-white">Seleziona Modello AI Gratuito</h2>
+          <h2 className="text-xl font-semibold dark:text-white">Seleziona Modello AI</h2>
           <button 
             onClick={onClose} 
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -90,17 +89,21 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
             </div>
             <input
               type="text"
-              placeholder="Cerca tra i modelli gratuiti..."
+              placeholder="Cerca modelli..."
               className="w-full p-2 pl-10 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {/* Mostriamo un messaggio informativo invece del checkbox */}
-          <div className="mt-2">
-            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-              ℹ️ Stai visualizzando solo modelli gratuiti
-            </p>
+          <div className="mt-2 flex items-center">
+            <input
+              type="checkbox"
+              id="free-only"
+              checked={showFreeOnly}
+              onChange={() => setShowFreeOnly(!showFreeOnly)}
+              className="mr-2"
+            />
+            <label htmlFor="free-only" className="text-sm dark:text-gray-300">Mostra solo modelli gratuiti</label>
           </div>
         </div>
 
@@ -113,7 +116,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
             <div className="text-center text-red-500 py-6">{error}</div>
           ) : filteredModels.length === 0 ? (
             <div className="text-center text-gray-500 dark:text-gray-400 py-6">
-              Nessun modello gratuito trovato con i criteri selezionati
+              Nessun modello trovato con i criteri selezionati
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
@@ -132,9 +135,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
                       <h3 className="font-medium dark:text-white">{model.name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{model.provider}</p>
                     </div>
-                    <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
-                      Gratuito
-                    </span>
+                    {model.free && (
+                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
+                        Gratuito
+                      </span>
+                    )}
                   </div>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{model.description}</p>
                   
@@ -161,7 +166,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onClose }) => {
 
         <div className="p-4 border-t flex justify-between items-center dark:border-gray-700">
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            {filteredModels.length} modelli gratuiti disponibili
+            {filteredModels.length} modelli disponibili
           </span>
           <div className="flex space-x-2">
             <button
