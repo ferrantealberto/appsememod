@@ -33,9 +33,7 @@ const NutritionPlanForm: React.FC = () => {
     }
   };
 
-  // Aggiunta manuale di un alimento come restrizione
-  const handleAddCustomRestriction = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddCustomRestriction = () => {
     const trimmed = customRestriction.trim();
     if (trimmed && !dietaryRestrictions.includes(trimmed)) {
       setDietaryRestrictions([...dietaryRestrictions, trimmed]);
@@ -43,7 +41,7 @@ const NutritionPlanForm: React.FC = () => {
     }
   };
 
-  const handleRemoveCustomRestriction = (restriction: string) => {
+  const handleRemoveRestriction = (restriction: string) => {
     setDietaryRestrictions(dietaryRestrictions.filter(r => r !== restriction));
   };
 
@@ -164,7 +162,7 @@ const NutritionPlanForm: React.FC = () => {
             ))}
           </div>
           {/* Input per aggiunta manuale */}
-          <form onSubmit={handleAddCustomRestriction} className="flex items-center mt-4 space-x-2">
+          <div className="flex items-center mt-4 space-x-2">
             <input
               type="text"
               placeholder="Aggiungi alimento da escludere..."
@@ -173,21 +171,20 @@ const NutritionPlanForm: React.FC = () => {
               className="flex-1 p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
             <button
-              type="submit"
+              type="button"
               className="py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
               disabled={!customRestriction.trim()}
+              onClick={handleAddCustomRestriction}
             >
               Aggiungi
             </button>
-          </form>
-          {/* Lista degli alimenti personalizzati */}
-          {dietaryRestrictions.filter(restr => !commonDietaryRestrictions.includes(restr)).length > 0 && (
+          </div>
+          {/* Lista di tutte le restrizioni (predefinite o personalizzate) */}
+          {dietaryRestrictions.length > 0 && (
             <div className="mt-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Alimenti esclusi manualmente:</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Restrizioni attuali:</span>
               <ul className="flex flex-wrap gap-2 mt-1">
-                {dietaryRestrictions
-                  .filter(restr => !commonDietaryRestrictions.includes(restr))
-                  .map((restriction) => (
+                {dietaryRestrictions.map((restriction) => (
                   <li
                     key={restriction}
                     className="flex items-center bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-sm"
@@ -195,7 +192,7 @@ const NutritionPlanForm: React.FC = () => {
                     {restriction}
                     <button
                       type="button"
-                      onClick={() => handleRemoveCustomRestriction(restriction)}
+                      onClick={() => handleRemoveRestriction(restriction)}
                       className="ml-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                       aria-label={`Rimuovi ${restriction}`}
                     >
