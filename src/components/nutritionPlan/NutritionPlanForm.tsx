@@ -13,6 +13,7 @@ const NutritionPlanForm: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [nutritionPlan, setNutritionPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [customRestriction, setCustomRestriction] = useState<string>('');
 
   const commonDietaryRestrictions = [
     'Vegetariano',
@@ -32,9 +33,23 @@ const NutritionPlanForm: React.FC = () => {
     }
   };
 
+  // Aggiunta manuale di un alimento come restrizione
+  const handleAddCustomRestriction = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = customRestriction.trim();
+    if (trimmed && !dietaryRestrictions.includes(trimmed)) {
+      setDietaryRestrictions([...dietaryRestrictions, trimmed]);
+      setCustomRestriction('');
+    }
+  };
+
+  const handleRemoveCustomRestriction = (restriction: string) => {
+    setDietaryRestrictions(dietaryRestrictions.filter(r => r !== restriction));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedModel) {
       setError('Seleziona prima un modello AI');
       return;
@@ -43,14 +58,14 @@ const NutritionPlanForm: React.FC = () => {
     try {
       setIsGenerating(true);
       setError(null);
-      
+
       const userProfile = {
         age,
         activityLevel,
         dietaryRestrictions,
         fitnessGoal: goal
       };
-      
+
       const seasonalFoods = [
         { name: 'Spinaci' },
         { name: 'Cavolo' },
@@ -58,7 +73,7 @@ const NutritionPlanForm: React.FC = () => {
         { name: 'Carote' },
         { name: 'Quinoa' }
       ];
-      
+
       const plan = await generateNutritionPlan(selectedModel.id, userProfile, seasonalFoods);
       setNutritionPlan(plan);
     } catch (err) {
@@ -71,9 +86,9 @@ const NutritionPlanForm: React.FC = () => {
 
   if (nutritionPlan) {
     return (
-      <NutritionPlanDisplay 
-        plan={nutritionPlan} 
-        onReset={() => setNutritionPlan(null)} 
+      <NutritionPlanDisplay
+        plan={nutritionPlan}
+        onReset={() => setNutritionPlan(null)}
       />
     );
   }
@@ -81,19 +96,19 @@ const NutritionPlanForm: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 dark:text-white">Crea il Tuo Piano Nutrizionale Personalizzato</h1>
-      
+
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg dark:bg-red-900 dark:text-red-300">
           {error}
         </div>
       )}
-      
+
       {!selectedModel && (
         <div className="mb-4 p-3 bg-yellow-100 text-yellow-700 rounded-lg dark:bg-yellow-900 dark:text-yellow-300">
           Seleziona un modello AI dal menu Modelli AI prima di creare un piano nutrizionale.
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -109,7 +124,7 @@ const NutritionPlanForm: React.FC = () => {
             required
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Livello di Attività
@@ -127,7 +142,7 @@ const NutritionPlanForm: React.FC = () => {
             <option value={ActivityLevel.ATHLETE}>Atleta (allenamento 2x/giorno)</option>
           </select>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Restrizioni Alimentari
@@ -148,17 +163,60 @@ const NutritionPlanForm: React.FC = () => {
               </div>
             ))}
           </div>
+          {/* Input per aggiunta manuale */}
+          <form onSubmit={handleAddCustomRestriction} className="flex items-center mt-4 space-x-2">
+            <input
+              type="text"
+              placeholder="Aggiungi alimento da escludere..."
+              value={customRestriction}
+              onChange={(e) => setCustomRestriction(e.target.value)}
+              className="flex-1 p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+            <button
+              type="submit"
+              className="py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+              disabled={!customRestriction.trim()}
+            >
+              Aggiungi
+            </button>
+          </form>
+          {/* Lista degli alimenti personalizzati */}
+          {dietaryRestrictions.filter(restr => !commonDietaryRestrictions.includes(restr)).length > 0 && (
+            <div className="mt-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Alimenti esclusi manualmente:</span>
+              <ul className="flex flex-wrap gap-2 mt-1">
+                {dietaryRestrictions
+                  .filter(restr => !commonDietaryRestrictions.includes(restr))
+                  .map((restriction) => (
+                  <li
+                    key={restriction}
+                    className="flex items-center bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-sm"
+                  >
+                    {restriction}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCustomRestriction(restriction)}
+                      className="ml-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                      aria-label={`Rimuovi ${restriction}`}
+                    >
+                      &times;
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Obiettivo
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div 
+            <div
               className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                goal === FitnessGoal.GENERAL_FITNESS 
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                goal === FitnessGoal.GENERAL_FITNESS
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
                   : 'border-gray-200 dark:border-gray-700'
               }`}
               onClick={() => setGoal(FitnessGoal.GENERAL_FITNESS)}
@@ -166,11 +224,11 @@ const NutritionPlanForm: React.FC = () => {
               <h3 className="font-medium dark:text-white">Benessere Generale</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">Nutrizione bilanciata per la salute</p>
             </div>
-            
-            <div 
+
+            <div
               className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                goal === FitnessGoal.WEIGHT_LOSS 
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                goal === FitnessGoal.WEIGHT_LOSS
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
                   : 'border-gray-200 dark:border-gray-700'
               }`}
               onClick={() => setGoal(FitnessGoal.WEIGHT_LOSS)}
@@ -178,11 +236,11 @@ const NutritionPlanForm: React.FC = () => {
               <h3 className="font-medium dark:text-white">Perdita Peso</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">Deficit calorico con nutrizione adeguata</p>
             </div>
-            
-            <div 
+
+            <div
               className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                goal === FitnessGoal.STRENGTH 
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                goal === FitnessGoal.STRENGTH
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
                   : 'border-gray-200 dark:border-gray-700'
               }`}
               onClick={() => setGoal(FitnessGoal.STRENGTH)}
@@ -192,7 +250,7 @@ const NutritionPlanForm: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <button
           type="submit"
           disabled={isGenerating || !selectedModel}
@@ -202,12 +260,12 @@ const NutritionPlanForm: React.FC = () => {
             <span className="flex items-center justify-center">
               <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
               </svg>
-              Generazione Piano in Corso...
+              Generazione...
             </span>
           ) : (
-            'Genera Piano Nutrizionale'
+            'Genera Piano'
           )}
         </button>
       </form>
